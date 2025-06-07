@@ -1,9 +1,11 @@
 # -*- coding: utf-8 -*-
+import os
 import re
 from openai import OpenAI
 
+# ✅ ดึง GROQ_API_KEY จาก Environment Variable
 client = OpenAI(
-    api_key="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",
+    api_key=os.getenv("GROQ_API_KEY"),
     base_url="https://api.groq.com/openai/v1"
 )
 
@@ -62,7 +64,6 @@ def parse_menu_items(text):
 def chat_with_text(user_input, lang_code="th"):
     global conversation_history, current_order, current_lang
 
-    # 👇 ตรวจสอบภาษาใหม่
     if not conversation_history or current_lang != lang_code:
         init_chat(lang_code)
 

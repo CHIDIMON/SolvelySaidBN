@@ -1,9 +1,13 @@
+# whisperapi.py
+import os
 import requests
 
-GROQ_API_KEY = "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"
+# ✅ ดึง GROQ_API_KEY จาก Environment Variable
+GROQ_API_KEY = os.getenv("GROQ_API_KEY")
+
 def transcribe_audio_api(file_path, language="th"):
     """
-    ถอดเสียงจากไฟล์เสียงด้วย Faster-Whisper และคืนข้อความที่ได้
+    ถอดเสียงจากไฟล์เสียงด้วย Groq Whisper API
     """
     url = "https://api.groq.com/openai/v1/audio/transcriptions"
 
