@@ -1,0 +1,9 @@
+services:
+  - type: web
+    name: whisper-api
+    env: python
+    buildCommand: ""
+    startCommand: python app.py
+    envVars:
+      - key: GROQ_API_KEY
+        sync: false  # ใส่ค่าในหน้า Render Dashboard แทน
