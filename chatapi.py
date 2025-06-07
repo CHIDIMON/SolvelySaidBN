@@ -2,6 +2,8 @@
 import os
 import re
 from openai import OpenAI
+from dotenv import load_dotenv
+load_dotenv()
 
 # ✅ ดึง GROQ_API_KEY จาก Environment Variable
 client = OpenAI(

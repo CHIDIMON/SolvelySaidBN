@@ -7,9 +7,9 @@ from flask_cors import CORS
 from io import BytesIO
 import sqlite3
 import threading
-from backend.chatapi import init_chat, chat_with_text
+from chatapi import init_chat, chat_with_text
 from whisper import transcribe_audio  # ✅ นำเข้าโมดูลใหม่
-from backend.whisperapi import transcribe_audio_api
+from whisperapi import transcribe_audio_api
 # ตั้งค่า encoding เป็น UTF-8
 sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
 sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8')

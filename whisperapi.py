@@ -1,6 +1,8 @@
 # whisperapi.py
 import os
 import requests
+from dotenv import load_dotenv
+load_dotenv()
 
 # ✅ ดึง GROQ_API_KEY จาก Environment Variable
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
