@@ -26,6 +26,10 @@ def get_db_connection():
     conn.row_factory = sqlite3.Row
     return conn
 
+@app.route('/ping', methods=['GET'])
+def ping():
+    return "pong", 200
+
 @app.route('/image/<menu_name>', methods=['GET'])
 def get_image(menu_name):
     try:
