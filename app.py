@@ -15,7 +15,12 @@ sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
 sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8')
 
 app = Flask(__name__)
-CORS(app, resources={r"/upload": {"origins": "*"}, r"/image/*": {"origins": "*"}, r"/chat": {"origins": "*"}})
+CORS(app, resources={
+    r"/upload": {"origins": "*"},
+    r"/image/*": {"origins": "*"},
+    r"/chat": {"origins": "*"},
+    r"/ping": {"origins": "*"} 
+})
 
 UPLOAD_FOLDER = "uploads"
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
