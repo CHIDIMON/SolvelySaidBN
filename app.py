@@ -8,7 +8,7 @@ from io import BytesIO
 import sqlite3
 import threading
 from chatapi import init_chat, chat_with_text
-from whisper import transcribe_audio  # ✅ นำเข้าโมดูลใหม่
+#from whisper import transcribe_audio  # ✅ นำเข้าโมดูลใหม่
 from whisperapi import transcribe_audio_api
 # ตั้งค่า encoding เป็น UTF-8
 sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
