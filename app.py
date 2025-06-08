@@ -6,10 +6,9 @@ from flask import Flask, request, jsonify, send_file
 from flask_cors import CORS
 from io import BytesIO
 import sqlite3
-import threading
 from chatapi import init_chat, chat_with_text
-#from whisper import transcribe_audio  # ✅ นำเข้าโมดูลใหม่
 from whisperapi import transcribe_audio_api
+from dotenv import load_dotenv
 # ตั้งค่า encoding เป็น UTF-8
 sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
 sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8')
@@ -30,6 +29,20 @@ def get_db_connection():
     conn = sqlite3.connect('food_menu.db')
     conn.row_factory = sqlite3.Row
     return conn
+from dotenv import load_dotenv
+load_dotenv()
+LOGIN_PASSWORD = os.getenv("LOGIN_PASSWORD", "default123")  # ใส่ default กันลืม
+
+@app.route('/login', methods=['POST'])
+def login():
+    try:
+        data = request.get_json()
+        password = data.get("password", "")
+        if password == LOGIN_PASSWORD:
+            return jsonify({"success": True})
+        return jsonify({"success": False}), 401
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 @app.route('/ping', methods=['GET'])
 def ping():
