@@ -18,8 +18,10 @@ CORS(app, resources={
     r"/upload": {"origins": "*"},
     r"/image/*": {"origins": "*"},
     r"/chat": {"origins": "*"},
-    r"/ping": {"origins": "*"} 
+    r"/ping": {"origins": "*"},
+    r"/login": {"origins": "https://solvelysaid.space"}
 })
+
 
 UPLOAD_FOLDER = "uploads"
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
