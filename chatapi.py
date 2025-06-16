@@ -76,7 +76,7 @@ def chat_with_text(user_input, lang_code="th"):
     if user_input.lower().strip() in ["สรุปเมนู", "summary"]:
         return summarize_order(current_order)
 
-    if "สั่ง" in user_input.lower():
+    if any(word in user_input.lower() for word in ["สั่ง", "order"]):
         parts = user_input.split()
         if len(parts) >= 2:
             item_name = parts[1]
@@ -98,7 +98,11 @@ def chat_with_text(user_input, lang_code="th"):
             messages=conversation_history,
             temperature=0.7
         )
-        reply = response.choices[0].message.content.strip()
+        if not response.choices:
+            return "โมเดลไม่ตอบกลับ" if lang_code == "th" else "Model did not respond."
+
+        content = getattr(response.choices[0].message, "content", "")
+        reply = (content or "").strip()
         conversation_history.append({'role': 'assistant', 'content': reply})
         return reply
     except Exception as e:
