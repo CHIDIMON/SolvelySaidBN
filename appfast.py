@@ -5,6 +5,8 @@ import sqlite3
 from dotenv import load_dotenv
 from fastapi import FastAPI, UploadFile, File, Form, Request
 from fastapi.responses import JSONResponse, StreamingResponse, HTMLResponse, Response
+from fastapi.templating import Jinja2Templates
+from fastapi.staticfiles import StaticFiles
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request as StarletteRequest
 
@@ -18,7 +20,11 @@ LOGIN_PASSWORD = os.getenv("LOGIN_PASSWORD", "default123")
 # ---------- สร้าง FastAPI app ----------
 app = FastAPI()
 
-# ---------- Custom CORS Middleware แบบแยก route ----------
+# ---------- ตั้งค่า Static & Template ----------
+app.mount("/static", StaticFiles(directory="static"), name="static")
+templates = Jinja2Templates(directory="templates")
+
+# ---------- Custom CORS Middleware ----------
 class CustomCORSMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: StarletteRequest, call_next):
         if request.method == "OPTIONS":
@@ -32,7 +38,6 @@ class CustomCORSMiddleware(BaseHTTPMiddleware):
         path = request.url.path
         origin = request.headers.get("origin", "")
 
-        # ✅ เพิ่มให้แน่ใจว่า /ping /upload /chat ได้ Header
         if path.startswith(("/ping", "/upload", "/chat", "/image")):
             response.headers["Access-Control-Allow-Origin"] = "*"
         elif path.startswith("/login") and origin == "https://solvelysaid.space":
@@ -154,91 +159,8 @@ async def debug_menus():
         return JSONResponse(content={"error": str(e)}, status_code=500)
 
 @app.get("/", response_class=HTMLResponse)
-async def home():
-    return '''
-    <!DOCTYPE html>
-    <html lang="en">
-    <head>
-      <meta charset="UTF-8" />
-      <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-      <title>Welcome to solvelysaid.space</title>
-      <link rel="icon" type="image/png" href="solvely.png" />
-      <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600&display=swap" rel="stylesheet">
-      <style>
-        body {
-          margin: 0;
-          background: #000;
-          color: white;
-          font-family: 'Orbitron', sans-serif;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          height: 100vh;
-          text-align: center;
-          padding: 0 20px;
-          box-sizing: border-box;
-        }
-        .container {
-          width: 100%;
-          max-width: 960px;
-        }
-        h1 {
-          font-size: 3rem;
-          letter-spacing: 2px;
-          margin-bottom: 20px;
-          line-height: 1.3;
-        }
-        p {
-          font-size: 1.2rem;
-          color: #aaaaaa;
-          margin-bottom: 16px;
-        }
-        a {
-          display: inline-block;
-          text-decoration: none;
-          color: black;
-          background: white;
-          padding: 14px 30px;
-          font-weight: bold;
-          border-radius: 8px;
-          font-size: 1rem;
-          transition: background 0.3s ease, transform 0.2s ease;
-        }
-        a:hover {
-          background: #00e5ff;
-          transform: scale(1.05);
-        }
-        .highlight {
-          color: #00e5ff;
-        }
-        @media (max-width: 768px) {
-          h1 {
-            font-size: 2rem;
-            line-height: 1.3;
-          }
-          p {
-            font-size: 1rem;
-          }
-          a {
-            padding: 10px 22px;
-            font-size: 0.95rem;
-          }
-          .container {
-            max-width: 90%;
-          }
-        }
-      </style>
-    </head>
-    <body>
-      <div class="container">
-        <h1>Welcome to<br><span class="highlight">solvelysaid.space</span></h1>
-        <p>Mission: Backend API is running</p>
-        <p><b>Thirasak.official</b></p>
-        <a href="https://solvelysaid.space/">ENTER TO MAIN</a>
-      </div>
-    </body>
-    </html>
-    '''
+async def home(request: Request):
+    return templates.TemplateResponse("page.html", {"request": request})
 
 # ---------- สร้างฐานข้อมูลเมนูเริ่มต้น ----------
 def initialize_database():
