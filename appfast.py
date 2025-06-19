@@ -8,6 +8,9 @@ from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request as StarletteRequest
+
+from fastapi.middleware.cors import CORSMiddleware  # <-- เพิ่ม CORS Middleware
+
 from chatapi import init_chat, chat_with_text
 from whisperapi import transcribe_audio_api
 
@@ -15,7 +18,11 @@ from db import (
     initialize_database,
     get_all_menus,
     get_menu_image,
+    insert_menu,
+    update_menu,
+    delete_menu,
 )
+
 initialize_database()
 
 load_dotenv()
@@ -23,32 +30,17 @@ LOGIN_PASSWORD = os.getenv("LOGIN_PASSWORD", "default123")
 
 app = FastAPI()
 
+# == ใส่ CORS Middleware ของ FastAPI ตรงนี้เลย ==
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # ถ้าต้องการจำกัด origin ให้ใส่ domain ที่อนุญาต
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 app.mount("/static", StaticFiles(directory="static"), name="static")
 templates = Jinja2Templates(directory="templates")
-
-class CustomCORSMiddleware(BaseHTTPMiddleware):
-    async def dispatch(self, request: StarletteRequest, call_next):
-        if request.method == "OPTIONS":
-            return Response(status_code=204, headers={
-                "Access-Control-Allow-Origin": "*",
-                "Access-Control-Allow-Headers": "*",
-                "Access-Control-Allow-Methods": "*"
-            })
-
-        response = await call_next(request)
-        path = request.url.path
-        origin = request.headers.get("origin", "")
-
-        if path.startswith(("/ping", "/upload", "/chat", "/image")):
-            response.headers["Access-Control-Allow-Origin"] = "*"
-        elif path.startswith("/login") and origin == "https://solvelysaid.space":
-            response.headers["Access-Control-Allow-Origin"] = origin
-
-        response.headers["Access-Control-Allow-Headers"] = "*"
-        response.headers["Access-Control-Allow-Methods"] = "*"
-        return response
-
-app.add_middleware(CustomCORSMiddleware)
 
 UPLOAD_FOLDER = "uploads"
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
@@ -139,6 +131,54 @@ async def debug_menus():
 @app.get("/", response_class=HTMLResponse)
 async def home(request: Request):
     return templates.TemplateResponse("page.html", {"request": request})
+
+# ==== CRUD เมนู ====
+
+@app.post("/menu/add")
+async def add_menu(request: Request):
+    data = await request.json()
+    name = data.get("name")
+    price = data.get("price", 0)
+    desc = data.get("description", "")
+    if not name:
+        return JSONResponse(content={"error": "ต้องใส่ชื่อเมนู"}, status_code=400)
+    insert_menu(name=name, price=price, description=desc)
+    return {"success": True}
+
+@app.post("/menu/edit")
+async def edit_menu(request: Request):
+    data = await request.json()
+    menu_id = data.get("id")
+    name = data.get("name")
+    price = data.get("price")
+    desc = data.get("description")
+    if not menu_id:
+        return JSONResponse(content={"error": "ต้องระบุ id เมนู"}, status_code=400)
+    update_menu(menu_id, name=name, price=price, description=desc)
+    return {"success": True}
+
+@app.post("/menu/delete")
+async def delete_menu_api(request: Request):
+    data = await request.json()
+    menu_id = data.get("id")
+    if not menu_id:
+        return JSONResponse(content={"error": "ต้องระบุ id เมนู"}, status_code=400)
+    delete_menu(menu_id)
+    return {"success": True}
+
+@app.post("/menu/edit/batch")
+async def edit_menu_batch(request: Request):
+    data = await request.json()
+    menus = data.get("menus", [])
+    for menu in menus:
+        menu_id = menu.get("id")
+        name = menu.get("name")
+        price = menu.get("price")
+        desc = menu.get("description")
+        if menu_id:
+            update_menu(menu_id, name=name, price=price, description=desc)
+    return {"success": True}
+# ==== END CRUD ====
 
 init_chat()
 initialize_database()
