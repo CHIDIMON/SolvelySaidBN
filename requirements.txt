@@ -8,6 +8,6 @@ openai==1.84.0
 tqdm==4.67.1
 requests==2.32.3
 jinja2
-pymongo[srv]==4.13.2
+pymongo[srv]==3.13.0
 certifi
 dnspython
