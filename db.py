@@ -1,6 +1,7 @@
 # db.py (MongoDB version)
 
 import os
+import certifi
 from pymongo import MongoClient # type: ignore
 from bson.objectid import ObjectId
 
@@ -10,7 +11,8 @@ username = "chidimon"
 password = "chidimon026"
 
 MONGO_URI = f"mongodb+srv://{username}:{password}@solvelysaid.c6sojky.mongodb.net/?retryWrites=true&w=majority"
-
+client = MongoClient(MONGO_URI, tls=True, tlsCAFile=certifi.where())
+                     
 print(MONGO_URI)
 DB_NAME = "mydb"
 COLLECTION = "menu"
