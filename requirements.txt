@@ -11,3 +11,4 @@ jinja2
 pymongo[srv]==3.13.0
 certifi
 dnspython
+PYTHON_VERSION==3.13.5
