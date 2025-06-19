@@ -16,3 +16,4 @@ cffi
 pip
 setuptools
 wheel
+Pillow==11.2.1
