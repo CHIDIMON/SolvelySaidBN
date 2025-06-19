@@ -1,7 +1,6 @@
 import os
 import io
 import traceback
-import sqlite3
 from dotenv import load_dotenv
 from fastapi import FastAPI, UploadFile, File, Form, Request
 from fastapi.responses import JSONResponse, StreamingResponse, HTMLResponse, Response
@@ -9,22 +8,24 @@ from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request as StarletteRequest
-
 from chatapi import init_chat, chat_with_text
 from whisperapi import transcribe_audio_api
 
-# โหลดค่า .env
+from db import (
+    initialize_database,
+    get_all_menus,
+    get_menu_image,
+)
+initialize_database()
+
 load_dotenv()
 LOGIN_PASSWORD = os.getenv("LOGIN_PASSWORD", "default123")
 
-# ---------- สร้าง FastAPI app ----------
 app = FastAPI()
 
-# ---------- ตั้งค่า Static & Template ----------
 app.mount("/static", StaticFiles(directory="static"), name="static")
 templates = Jinja2Templates(directory="templates")
 
-# ---------- Custom CORS Middleware ----------
 class CustomCORSMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: StarletteRequest, call_next):
         if request.method == "OPTIONS":
@@ -47,20 +48,10 @@ class CustomCORSMiddleware(BaseHTTPMiddleware):
         response.headers["Access-Control-Allow-Methods"] = "*"
         return response
 
-# ---------- เพิ่ม Middleware ----------
 app.add_middleware(CustomCORSMiddleware)
 
-# ---------- โฟลเดอร์อัปโหลด ----------
 UPLOAD_FOLDER = "uploads"
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
-
-# ---------- เชื่อมฐานข้อมูล ----------
-def get_db_connection():
-    conn = sqlite3.connect('food_menu.db')
-    conn.row_factory = sqlite3.Row
-    return conn
-
-# ---------- ENDPOINTS ----------
 
 @app.post("/login")
 async def login(request: Request):
@@ -77,14 +68,9 @@ async def ping():
 @app.get("/image/{menu_name}")
 async def get_image(menu_name: str):
     try:
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        cursor.execute("SELECT image FROM menu WHERE name=?", (menu_name,))
-        row = cursor.fetchone()
-        conn.close()
-
-        if row:
-            return StreamingResponse(io.BytesIO(row["image"]), media_type="image/jpeg")
+        image_data = get_menu_image(menu_name)
+        if image_data:
+            return StreamingResponse(io.BytesIO(image_data), media_type="image/jpeg")
         return JSONResponse(content={"error": "ไม่พบรูปภาพ"}, status_code=404)
     except Exception as e:
         print("🔥 ERROR:", str(e))
@@ -105,11 +91,7 @@ async def upload_file(file: UploadFile = File(...), language: str = Form("th")):
         text = transcribe_audio_api(temp_path, language=language)
         chat_response = chat_with_text(text, lang_code=language)
 
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        cursor.execute("SELECT name FROM menu")
-        all_menus = [row['name'] for row in cursor.fetchall()]
-        conn.close()
+        all_menus = [menu["name"] for menu in get_all_menus()]
 
         matched_menu = next((menu for menu in all_menus if menu.lower() in text.lower()), None)
 
@@ -149,11 +131,7 @@ async def chat_endpoint(request: Request):
 @app.get("/debug/menus")
 async def debug_menus():
     try:
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        cursor.execute("SELECT id, name FROM menu")
-        menus = [{"id": row["id"], "name": row["name"]} for row in cursor.fetchall()]
-        conn.close()
+        menus = get_all_menus()
         return {"menus": menus}
     except Exception as e:
         return JSONResponse(content={"error": str(e)}, status_code=500)
@@ -162,30 +140,5 @@ async def debug_menus():
 async def home(request: Request):
     return templates.TemplateResponse("page.html", {"request": request})
 
-# ---------- สร้างฐานข้อมูลเมนูเริ่มต้น ----------
-def initialize_database():
-    conn = sqlite3.connect('food_menu.db')
-    cursor = conn.cursor()
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS menu (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            name TEXT NOT NULL,
-            image BLOB
-        )
-    ''')
-    cursor.execute("SELECT COUNT(*) FROM menu")
-    if cursor.fetchone()[0] == 0:
-        with open("image/Pizza.webp", "rb") as f:
-            pizza_img = f.read()
-        cursor.execute("INSERT INTO menu (name, image) VALUES (?, ?)", ("Pizza", pizza_img))
-        with open("image/Tomyum.jpg", "rb") as f:
-            tomyum_img = f.read()
-        cursor.execute("INSERT INTO menu (name, image) VALUES (?, ?)", ("ต้มยำ", tomyum_img))
-        cursor.execute("INSERT INTO menu (name, image) VALUES (?, ?)", ("Tom Yum", tomyum_img))
-        cursor.execute("INSERT INTO menu (name, image) VALUES (?, ?)", ("Tom Yam", tomyum_img))
-    conn.commit()
-    conn.close()
-
-# ---------- เรียกตอนเริ่มแอป ----------
 init_chat()
 initialize_database()
