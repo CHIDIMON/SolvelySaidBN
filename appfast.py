@@ -17,7 +17,8 @@ from whisperapi import transcribe_audio_api
 from db import (
     initialize_database,
     get_all_menus,
-    get_menu_image,
+    get_menu_image_thumb,
+    get_menu_image_720p,
     insert_menu,
     update_menu,
     delete_menu,
@@ -57,16 +58,28 @@ async def login(request: Request):
 async def ping():
     return "pong"
 
-@app.get("/image/{menu_name}")
-async def get_image(menu_name: str):
+@app.get("/image/thumb/{menu_name}")
+async def get_image_thumb(menu_name: str):
     try:
-        image_data = get_menu_image(menu_name)
+        image_data = get_menu_image_thumb(menu_name)
         if image_data:
             return StreamingResponse(io.BytesIO(image_data), media_type="image/jpeg")
         return JSONResponse(content={"error": "ไม่พบรูปภาพ"}, status_code=404)
     except Exception as e:
         print("🔥 ERROR:", str(e))
         return JSONResponse(content={"error": "เกิดข้อผิดพลาดในการดึงรูปภาพ"}, status_code=500)
+
+@app.get("/image/720p/{menu_name}")
+async def get_image_720p(menu_name: str):
+    try:
+        image_data = get_menu_image_720p(menu_name)
+        if image_data:
+            return StreamingResponse(io.BytesIO(image_data), media_type="image/jpeg")
+        return JSONResponse(content={"error": "ไม่พบรูปภาพ"}, status_code=404)
+    except Exception as e:
+        print("🔥 ERROR:", str(e))
+        return JSONResponse(content={"error": "เกิดข้อผิดพลาดในการดึงรูปภาพ"}, status_code=500)
+
 
 @app.post("/upload")
 async def upload_file(file: UploadFile = File(...), language: str = Form("th")):
