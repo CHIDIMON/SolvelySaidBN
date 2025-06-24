@@ -3,13 +3,11 @@ import io
 import traceback
 from dotenv import load_dotenv
 from fastapi import FastAPI, UploadFile, File, Form, Request
-from fastapi.responses import JSONResponse, StreamingResponse, HTMLResponse, Response
+from fastapi.responses import JSONResponse, StreamingResponse, HTMLResponse
 from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
-from starlette.middleware.base import BaseHTTPMiddleware
-from starlette.requests import Request as StarletteRequest
 
-from fastapi.middleware.cors import CORSMiddleware  # <-- เพิ่ม CORS Middleware
+from fastapi.middleware.cors import CORSMiddleware
 
 from chatapi import init_chat, chat_with_text
 from whisperapi import transcribe_audio_api
@@ -31,14 +29,20 @@ LOGIN_PASSWORD = os.getenv("LOGIN_PASSWORD", "default123")
 
 app = FastAPI()
 
-# == ใส่ CORS Middleware ของ FastAPI ตรงนี้เลย ==
+allow_origins = [
+    "https://solvelysaid.space",
+    "https://app.solvelysaid.space",
+    "https://solvelysaidbn.onrender.com"  # เพิ่มโดเมนของ backend เอง
+]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # ถ้าต้องการจำกัด origin ให้ใส่ domain ที่อนุญาต
+    allow_origins=allow_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
 
 app.mount("/static", StaticFiles(directory="static"), name="static")
 templates = Jinja2Templates(directory="templates")
@@ -80,7 +84,6 @@ async def get_image_720p(menu_name: str):
         print("🔥 ERROR:", str(e))
         return JSONResponse(content={"error": "เกิดข้อผิดพลาดในการดึงรูปภาพ"}, status_code=500)
 
-
 @app.post("/upload")
 async def upload_file(file: UploadFile = File(...), language: str = Form("th")):
     if not file.filename:
@@ -97,7 +100,6 @@ async def upload_file(file: UploadFile = File(...), language: str = Form("th")):
         chat_response = chat_with_text(text, lang_code=language)
 
         all_menus = [menu["name"] for menu in get_all_menus()]
-
         matched_menu = next((menu for menu in all_menus if menu.lower() in text.lower()), None)
 
         result = {
@@ -145,17 +147,22 @@ async def debug_menus():
 async def home(request: Request):
     return templates.TemplateResponse("page.html", {"request": request})
 
-# ==== CRUD เมนู ====
+# ==== CRUD เมนู ==== 
 
 @app.post("/menu/add")
-async def add_menu(request: Request):
-    data = await request.json()
-    name = data.get("name")
-    price = data.get("price", 0)
-    desc = data.get("description", "")
-    if not name:
-        return JSONResponse(content={"error": "ต้องใส่ชื่อเมนู"}, status_code=400)
-    insert_menu(name=name, price=price, description=desc)
+async def add_menu(
+    name: str = Form(...),
+    price: int = Form(0),
+    description: str = Form(""),
+    image: UploadFile = File(None)
+):
+    image_path = None
+    if image and image.filename:
+        save_path = os.path.join(UPLOAD_FOLDER, image.filename)
+        with open(save_path, "wb") as f:
+            f.write(await image.read())
+        image_path = save_path
+    insert_menu(name=name, price=price, description=description, image_path=image_path)
     return {"success": True}
 
 @app.post("/menu/edit")
