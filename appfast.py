@@ -21,6 +21,7 @@ from db import (
     add_order,
     get_orders,
     delete_order,
+    update_order_status,
     delete_old_orders
 )
 
@@ -227,7 +228,16 @@ async def delete_order_api(request: Request):
 async def cleanup_orders():
     deleted = delete_old_orders(hours=6)
     return {"deleted": deleted}
-# ==============
+
+@app.post("/order/status")
+async def update_order_status_api(request: Request):
+    data = await request.json()
+    order_id = data.get("order_id")
+    status = data.get("status")
+    if not order_id or not status:
+        return JSONResponse({"error": "ต้องระบุ order_id และ status"}, status_code=400)
+    update_order_status(order_id, status)
+    return {"success": True}
 
 init_chat()
 initialize_database()

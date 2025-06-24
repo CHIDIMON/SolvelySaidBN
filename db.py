@@ -157,6 +157,9 @@ def get_orders(table_number=None):
 def delete_order(order_id):
     order_col.delete_one({"_id": ObjectId(order_id)})
 
+def update_order_status(order_id, status):
+    order_col.update_one({"_id": ObjectId(order_id)}, {"$set": {"status": status}})
+
 def delete_old_orders(hours=6):
     cutoff = datetime.utcnow() - timedelta(hours=hours)
     res = order_col.delete_many({
