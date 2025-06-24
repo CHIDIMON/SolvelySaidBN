@@ -1,10 +1,10 @@
 import os
 import certifi
-from pymongo import MongoClient # type: ignore
+from pymongo import MongoClient
 from bson.objectid import ObjectId
 from PIL import Image
 import io
-from datetime import datetime
+from datetime import datetime, timedelta
 
 MONGO_URI = "mongodb+srv://chidimon:chidimon026@solvelysaid.c6sojky.mongodb.net/?retryWrites=true&w=majority"
 
@@ -19,7 +19,6 @@ DB_NAME = "mydb"
 COLLECTION = "menu"
 IMAGE_DIR = 'image'
 
-client = MongoClient(MONGO_URI)
 db = client[DB_NAME]
 menu_col = db[COLLECTION]
 
@@ -129,7 +128,7 @@ def update_menu(menu_id, name=None, price=None, description=None, image_path=Non
 def delete_menu(menu_id):
     menu_col.delete_one({"_id": ObjectId(menu_id)})
 
-# ==== ORDER: เพิ่มสำหรับรับออเดอร์ ====
+# ==== ORDER ====
 ORDER_COLLECTION = "orders"
 order_col = db[ORDER_COLLECTION]
 
@@ -148,12 +147,19 @@ def get_orders(table_number=None):
     query = {}
     if table_number:
         query["table_number"] = table_number
-    results = []
-    for order in order_col.find(query):
-        order["id"] = str(order["_id"])
-        del order["_id"]
-        results.append(order)
-    return results
+    orders = []
+    for doc in order_col.find(query):
+        doc["id"] = str(doc["_id"])
+        del doc["_id"]
+        orders.append(doc)
+    return orders
 
-def update_order_status(order_id, new_status):
-    order_col.update_one({"_id": ObjectId(order_id)}, {"$set": {"status": new_status}})
+def delete_order(order_id):
+    order_col.delete_one({"_id": ObjectId(order_id)})
+
+def delete_old_orders(hours=6):
+    cutoff = datetime.utcnow() - timedelta(hours=hours)
+    res = order_col.delete_many({
+        "timestamp": {"$lt": cutoff.isoformat()}
+    })
+    return res.deleted_count

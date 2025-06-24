@@ -6,12 +6,10 @@ from fastapi import FastAPI, UploadFile, File, Form, Request
 from fastapi.responses import JSONResponse, StreamingResponse, HTMLResponse
 from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
-
 from fastapi.middleware.cors import CORSMiddleware
 
 from chatapi import init_chat, chat_with_text
 from whisperapi import transcribe_audio_api
-
 from db import (
     initialize_database,
     get_all_menus,
@@ -22,11 +20,11 @@ from db import (
     delete_menu,
     add_order,
     get_orders,
-    update_order_status,
+    delete_order,
+    delete_old_orders
 )
 
 initialize_database()
-
 load_dotenv()
 LOGIN_PASSWORD = os.getenv("LOGIN_PASSWORD", "default123")
 
@@ -149,8 +147,6 @@ async def debug_menus():
 async def home(request: Request):
     return templates.TemplateResponse("page.html", {"request": request})
 
-# ==== CRUD เมนู ==== 
-
 @app.post("/menu/add")
 async def add_menu(
     name: str = Form(...),
@@ -200,9 +196,8 @@ async def edit_menu_batch(request: Request):
         if menu_id:
             update_menu(menu_id, name=name, price=price, description=desc)
     return {"success": True}
-# ==== END CRUD ====
 
-# ==== ORDER ROUTE ====
+# ==== ORDER ====
 @app.post("/order")
 async def add_order_api(request: Request):
     data = await request.json()
@@ -219,16 +214,20 @@ async def orders_all():
     orders = get_orders()
     return {"orders": orders}
 
-@app.post("/order/status")
-async def update_order_api(request: Request):
+@app.post("/order/delete")
+async def delete_order_api(request: Request):
     data = await request.json()
     order_id = data.get("order_id")
-    status = data.get("status")
-    if not order_id or not status:
-        return JSONResponse({"error": "ต้องระบุ order_id และ status"}, status_code=400)
-    update_order_status(order_id, status)
+    if not order_id:
+        return JSONResponse({"error": "ต้องระบุ order_id"}, status_code=400)
+    delete_order(order_id)
     return {"success": True}
-# ==== END ORDER ROUTE ====
+
+@app.post("/orders/cleanup")
+async def cleanup_orders():
+    deleted = delete_old_orders(hours=6)
+    return {"deleted": deleted}
+# ==============
 
 init_chat()
 initialize_database()
