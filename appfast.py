@@ -20,6 +20,9 @@ from db import (
     insert_menu,
     update_menu,
     delete_menu,
+    add_order,
+    get_orders,
+    update_order_status,
 )
 
 initialize_database()
@@ -32,7 +35,7 @@ app = FastAPI()
 allow_origins = [
     "https://solvelysaid.space",
     "https://app.solvelysaid.space",
-    "https://solvelysaidbn.onrender.com"  # เพิ่มโดเมนของ backend เอง
+    "https://solvelysaidbn.onrender.com"
 ]
 
 app.add_middleware(
@@ -42,7 +45,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
 
 app.mount("/static", StaticFiles(directory="static"), name="static")
 templates = Jinja2Templates(directory="templates")
@@ -199,6 +201,34 @@ async def edit_menu_batch(request: Request):
             update_menu(menu_id, name=name, price=price, description=desc)
     return {"success": True}
 # ==== END CRUD ====
+
+# ==== ORDER ROUTE ====
+@app.post("/order")
+async def add_order_api(request: Request):
+    data = await request.json()
+    table_number = data.get("table_number")
+    menus = data.get("menus")
+    summary = data.get("summary")
+    if not table_number or (not menus and not summary):
+        return JSONResponse({"error": "ต้องระบุ table_number และเมนูหรือสรุป"}, status_code=400)
+    add_order(table_number, menus or [], summary)
+    return {"success": True}
+
+@app.get("/orders")
+async def orders_all():
+    orders = get_orders()
+    return {"orders": orders}
+
+@app.post("/order/status")
+async def update_order_api(request: Request):
+    data = await request.json()
+    order_id = data.get("order_id")
+    status = data.get("status")
+    if not order_id or not status:
+        return JSONResponse({"error": "ต้องระบุ order_id และ status"}, status_code=400)
+    update_order_status(order_id, status)
+    return {"success": True}
+# ==== END ORDER ROUTE ====
 
 init_chat()
 initialize_database()
